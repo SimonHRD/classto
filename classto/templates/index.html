@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en"
+  x-data="{
+    darkMode: localStorage.getItem('theme') === 'dark',
+    toggleTheme() {
+      this.darkMode = !this.darkMode;
+      localStorage.setItem('theme', this.darkMode ? 'dark' : 'light');
+      document.documentElement.classList.toggle('dark', this.darkMode);
+    }
+  }"
+  x-init="document.documentElement.classList.toggle('dark', darkMode)"
+>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>Classto</title>
+
+  <!-- Preload dark mode before Tailwind loads -->
+  <script>
+    if (localStorage.getItem('theme') === 'dark') {
+      document.documentElement.classList.add('dark');
+    }
+  </script>
+
+  <!-- Tell Tailwind to use class-based dark mode -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      content: [{ raw: 'html[class~="dark"]' }]
+    }
+  </script>
+
+  <script src="https://unpkg.com/alpinejs" defer></script>
+  <style>[x-cloak] { display: none !important; }</style>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+  <!-- Dark Mode Toggle -->
+  <div class="fixed top-4 right-4 z-50 flex gap-2">
+    <button @click="toggleTheme()"
+  class="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full p-2 transition"
+  :title="darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+  <span x-text="darkMode ? '🌙' : '☀️'"></span>
+</button>
+  </div>
+
+  <!-- Main Content -->
+  <main class="m-8 max-w-5xl mx-auto">
+    <header class="mb-8 text-center">
+      <div class="flex justify-center items-center gap-2">
+        <img src="/static/favicon.png" alt="Classto Logo" class="w-8 h-8">
+        <h1 class="text-4xl font-semibold tracking-tight text-gray-800 dark:text-gray-100">Classto</h1>
+      </div>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Manual Image Classification Tool</p>
+    </header>
+
+    {% if image_filename %}
+      <div class="bg-white dark:bg-gray-800 shadow-md rounded-xl p-8 grid md:grid-cols-2 gap-8 items-center" id="main-content">
+        <!-- Image -->
+        <div class="flex justify-center items-center h-[500px] bg-gray-100 dark:bg-gray-800 border dark:border-gray-600 rounded">
+          <img id="image-to-classify"
+              src="/images/{{ image_filename }}"
+              alt="To classify"
+              class="max-h-full max-w-full object-contain" />
+        </div>
+
+        <!-- Buttons -->
+        <div>
+          <h2 class="text-2xl font-semibold mb-4">Classify this image:</h2>
+          <div class="flex flex-col gap-4">
+            {% for label in classes %}
+            <button onclick="classify(this)"
+              class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-gray-800 dark:text-gray-100 font-medium py-3 px-4 rounded-lg text-lg transition">
+              {{ label }}
+            </button>
+            {% endfor %}
+            
+            {% if delete_button %}
+            <button onclick="classify(this)"
+              class="bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 text-red-700 dark:text-red-100 font-medium py-3 px-4 rounded-lg text-lg transition">
+              🗑️ Delete Image
+            </button>
+            {% endif %}
+          </div>
+          <p id="response-message" class="text-sm text-gray-500 dark:text-gray-400 mt-4"></p>
+        </div>
+
+      </div>
+    {% else %}
+      <div class="bg-white dark:bg-gray-800 shadow border border-gray-200 dark:border-gray-700 rounded-lg p-10 max-w-2xl mx-auto text-center">
+        <div class="mb-4">
+          <h2 class="text-3xl font-semibold text-gray-800 dark:text-gray-100 mb-2">👋 Welcome to Classto</h2>
+          <p class="text-gray-600 dark:text-gray-300 text-base">Your lightweight tool for manual image classification.</p>
+        </div>
+        <div class="text-gray-700 dark:text-gray-200 mt-6 text-base leading-relaxed">
+          <p>Quickly classify images into categories of your choice using a simple, streamlined interface.</p>
+          <p class="mt-4">
+            To get started, place your images in the configured folder:
+            <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded text-sm font-mono text-gray-800 dark:text-gray-200">{{ image_folder }}</code>
+            and reload the page.
+          </p>
+        </div>
+        <div class="mt-8">
+          <a href="/" class="inline-block bg-gray-800 dark:bg-gray-100 text-white dark:text-gray-900 text-sm px-5 py-2 rounded hover:bg-gray-700 dark:hover:bg-gray-300 transition">
+            🔄 Reload Page
+          </a>
+        </div>
+      </div>
+    {% endif %}
+  </main>
+
+  <!-- JS -->
+  <script>
+    function classify(button) {
+      const label = button.innerText.trim();
+      const imageEl = document.getElementById("image-to-classify");
+      const imagePath = imageEl.getAttribute("src");
+      const imageFilename = imagePath.split("/").pop();
+
+      console.log("Label:", label);
+
+      fetch("/classify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ label: label, image: imageFilename })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.next_image) {
+          imageEl.setAttribute("src", "/images/" + data.next_image);
+          document.getElementById("response-message").textContent = `✅ Classified as "${label}"`;
+        } else {
+          document.getElementById("main-content").innerHTML = `
+            <div class="col-span-2 text-center text-xl text-gray-600 dark:text-gray-300 py-16">
+              🎉 All images have been classified!
+            </div>
+          `;
+        }
+      })
+      .catch(err => {
+        console.error("Error:", err);
+        document.getElementById("response-message").textContent = `❌ Failed to send label`;
+      });
+    }
+  </script>
+</body>
+</html>
