@@ -6,12 +6,13 @@ With just a few lines of Python, Classto spins up a local web interface built on
 
 
 
+
 ### Interface Previews
 
 <p align="center">
-  <img src="./assets/screenshot_light.png" alt="Classto Light Mode" width="400">
+  <img src="https://raw.githubusercontent.com/SimonHRD/classto/refs/heads/main/assets/screenshot_light.png" alt="Classto Light Mode" width="400">
   &nbsp;&nbsp;&nbsp;
-  <img src="./assets/screenshot_dark.png" alt="Classto Dark Mode" width="400">
+  <img src="https://raw.githubusercontent.com/SimonHRD/classto/refs/heads/main/assets/screenshot_dark.png" alt="Classto Dark Mode" width="400">
 </p>
 
 <p align="center"><em>Classto in Light and Dark Mode</em></p>
